@@ -199,19 +199,43 @@ class sssd (
       }
     }
     'Debian': {
-      if $mkhomedir {
-        file { '/usr/share/pam-configs/pam_mkhomedir':
-          ensure => 'file',
-          owner  => 'root',
-          group  => 'root',
-          mode   => '0644',
-          source => 'puppet:///modules/sssd/pam_mkhomedir',
-          notify => Exec['pam-auth-update'],
-        }
+      exec { 'pam-auth-update':
+        path        => '/bin:/usr/bin:/sbin:/usr/sbin',
+        refreshonly => true,
+      }
 
-        exec { 'pam-auth-update':
-          path        => '/bin:/usr/bin:/sbin:/usr/sbin',
-          refreshonly => true,
+      exec { 'enable-sssd-profile':
+        command     => '/usr/sbin/auth-client-config -a -p ubuntu18_sss',
+        require     => File[ '/etc/auth-client-config/profile.d/acc-ubuntu18-sss' ],
+        refreshonly => true,
+      }
+      exec { 'disable-sssd-profile':
+        command     => '/usr/sbin/auth-client-config -a -p ubuntu18_stock',
+        require     => File[ '/etc/auth-client-config/profile.d/acc-ubuntu18-sss' ],
+        refreshonly => true,
+      }
+      if $ensure == 'present' {
+        notify {'we got here': }
+        file { '/etc/auth-client-config/profile.d/acc-ubuntu18-sss':
+          ensure  => file,
+          content => template('sssd/acc-ubuntu18-sss.erb'),
+          notify  => Exec['enable-sssd-profile']
+        }
+        if $mkhomedir {
+          file { '/usr/share/pam-configs/pam_mkhomedir':
+            ensure => 'file',
+            owner  => 'root',
+            group  => 'root',
+            mode   => '0644',
+            source => 'puppet:///modules/sssd/pam_mkhomedir',
+            notify => Exec['pam-auth-update'],
+          }
+        }
+      } else {
+        file { '/etc/auth-client-config/profile.d/acc-ubuntu18-stock':
+          ensure  => file,
+          content => template('sssd/acc-ubuntu18-stock.erb'),
+          notify  => Exec['disable-sssd-profile']
         }
       }
     }
