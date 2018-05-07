@@ -215,7 +215,6 @@ class sssd (
         refreshonly => true,
       }
       if $ensure == 'present' {
-        notify {'we got here': }
         file { '/etc/auth-client-config/profile.d/acc-ubuntu18-sss':
           ensure  => file,
           content => template('sssd/acc-ubuntu18-sss.erb'),
