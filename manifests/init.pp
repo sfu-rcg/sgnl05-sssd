@@ -176,6 +176,25 @@ class sssd (
     content => template($config_template),
   }
 
+  # SSSD automounts => nsswitch.conf
+  if 'autofs' in $sssd::config['sssd']['services'] {
+    augeas { 'nsswitch.conf':
+      context => '/files/etc/nsswitch.conf',
+      changes => ["defnode target \"/files/etc/nsswitch.conf/database[. = 'automount']/\" \"automount\"",
+                  "set \$target/service[1] sss",
+                  "set \$target/service[2] files",],
+      #notify  => Service[autofs]
+    }
+  } else {
+    augeas { 'nsswitch.conf':
+      context => '/files/etc/nsswitch.conf',
+      changes => ["defnode target \"/files/etc/nsswitch.conf/database[. = 'automount']/\" \"automount\"",
+                  "set \$target/service[1] files",
+                  "rm \$target/service[2]",],
+      #notify  => Service[autofs],
+    }
+  }
+
   case $::osfamily {
     'RedHat': {
       if $ensure == 'present' {
